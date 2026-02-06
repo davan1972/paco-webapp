@@ -86,59 +86,69 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/index.js"></script>
     <script>
-        // CONFIGURA LE TUE CREDENZIALI VAPI QUI
-        const PUBLIC_KEY = '2bb6b124-5478-410e-b770-447e904a6d61';
-        const ASSISTANT_ID = '719078b7-486f-44f1-9917-8aaed579819d';
-        
-        const vapi = new Vapi(PUBLIC_KEY);
-        const button = document.getElementById('callBtn');
-        const status = document.getElementById('status');
-        
-        let isCallActive = false;
-        
-        button.addEventListener('click', async () => {
-            if (!isCallActive) {
-                try {
-                    await vapi.start(ASSISTANT_ID);
-                    isCallActive = true;
-                    button.textContent = 'Termina Chiamata';
-                    button.classList.add('active');
-                    status.innerHTML = '🎙️ <span class="pulse">In chiamata con Paco...</span>';
-                } catch (error) {
-                    status.textContent = '❌ Errore: ' + error.message;
-                    console.error('Errore chiamata:', error);
+        // Aspetta che la libreria Vapi sia completamente caricata
+        window.addEventListener('load', function() {
+            // CONFIGURA LE TUE CREDENZIALI VAPI QUI
+            const PUBLIC_KEY = '2bb6b124-5478-410e-b770-447e904a6d61';
+            const ASSISTANT_ID = '719078b7-486f-44f1-9917-8aaed579819d';
+            
+            // Verifica che Vapi sia definito
+            if (typeof Vapi === 'undefined') {
+                console.error('Vapi non è caricato!');
+                document.getElementById('status').textContent = '❌ Errore caricamento Vapi';
+                return;
+            }
+            
+            const vapi = new Vapi(PUBLIC_KEY);
+            const button = document.getElementById('callBtn');
+            const status = document.getElementById('status');
+            
+            let isCallActive = false;
+            
+            button.addEventListener('click', async () => {
+                if (!isCallActive) {
+                    try {
+                        await vapi.start(ASSISTANT_ID);
+                        isCallActive = true;
+                        button.textContent = 'Termina Chiamata';
+                        button.classList.add('active');
+                        status.innerHTML = '🎙️ <span class="pulse">In chiamata con Paco...</span>';
+                    } catch (error) {
+                        status.textContent = '❌ Errore: ' + error.message;
+                        console.error('Errore chiamata:', error);
+                    }
+                } else {
+                    vapi.stop();
+                    isCallActive = false;
+                    button.textContent = 'Inizia Chiamata';
+                    button.classList.remove('active');
+                    status.textContent = '✅ Chiamata terminata';
                 }
-            } else {
-                vapi.stop();
+            });
+            
+            vapi.on('call-start', () => {
+                console.log('✅ Chiamata iniziata');
+            });
+            
+            vapi.on('call-end', () => {
+                console.log('❌ Chiamata terminata');
                 isCallActive = false;
                 button.textContent = 'Inizia Chiamata';
                 button.classList.remove('active');
-                status.textContent = '✅ Chiamata terminata';
-            }
-        });
-        
-        vapi.on('call-start', () => {
-            console.log('✅ Chiamata iniziata');
-        });
-        
-        vapi.on('call-end', () => {
-            console.log('❌ Chiamata terminata');
-            isCallActive = false;
-            button.textContent = 'Inizia Chiamata';
-            button.classList.remove('active');
-            status.textContent = '';
-        });
-        
-        vapi.on('message', (msg) => {
-            console.log('📩 Messaggio:', msg);
-        });
-        
-        vapi.on('error', (err) => {
-            console.error('❌ Errore:', err);
-            status.textContent = '❌ ' + err.message;
-            isCallActive = false;
-            button.textContent = 'Inizia Chiamata';
-            button.classList.remove('active');
+                status.textContent = '';
+            });
+            
+            vapi.on('message', (msg) => {
+                console.log('📩 Messaggio:', msg);
+            });
+            
+            vapi.on('error', (err) => {
+                console.error('❌ Errore:', err);
+                status.textContent = '❌ ' + err.message;
+                isCallActive = false;
+                button.textContent = 'Inizia Chiamata';
+                button.classList.remove('active');
+            });
         });
     </script>
 </body>
