@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paco - Assistente Vocale</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        #container {
+            text-align: center;
+            background: white;
+            padding: 60px 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 450px;
+            width: 90%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 32px;
+        }
+        p {
+            color: #666;
+            margin-bottom: 35px;
+            font-size: 16px;
+        }
+        button {
+            padding: 18px 50px;
+            font-size: 18px;
+            font-weight: 600;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.active {
+            background: #f44336;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+        }
+        button.active:hover {
+            background: #da190b;
+        }
+        #status {
+            margin-top: 30px;
+            font-size: 16px;
+            color: #555;
+            min-height: 30px;
+            font-weight: 500;
+        }
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>🎙️ Paco</h1>
+        <p>Il tuo assistente personale</p>
+        <button id="callBtn">Inizia Chiamata</button>
+        <div id="status"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@latest/dist/index.js"></script>
+    <script>
+        // CONFIGURA LE TUE CREDENZIALI VAPI QUI
+        const PUBLIC_KEY = 'INSERISCI_QUI_PUBLIC_KEY';
+        const ASSISTANT_ID = 'INSERISCI_QUI_ASSISTANT_ID';
+        
+        const vapi = new Vapi(PUBLIC_KEY);
+        const button = document.getElementById('callBtn');
+        const status = document.getElementById('status');
+        
+        let isCallActive = false;
+        
+        button.addEventListener('click', async () => {
+            if (!isCallActive) {
+                try {
+                    await vapi.start(ASSISTANT_ID);
+                    isCallActive = true;
+                    button.textContent = 'Termina Chiamata';
+                    button.classList.add('active');
+                    status.innerHTML = '🎙️ <span class="pulse">In chiamata con Paco...</span>';
+                } catch (error) {
+                    status.textContent = '❌ Errore: ' + error.message;
+                    console.error('Errore chiamata:', error);
+                }
+            } else {
+                vapi.stop();
+                isCallActive = false;
+                button.textContent = 'Inizia Chiamata';
+                button.classList.remove('active');
+                status.textContent = '✅ Chiamata terminata';
+            }
+        });
+        
+        vapi.on('call-start', () => {
+            console.log('✅ Chiamata iniziata');
+        });
+        
+        vapi.on('call-end', () => {
+            console.log('❌ Chiamata terminata');
+            isCallActive = false;
+            button.textContent = 'Inizia Chiamata';
+            button.classList.remove('active');
+            status.textContent = '';
+        });
+        
+        vapi.on('message', (msg) => {
+            console.log('📩 Messaggio:', msg);
+        });
+        
+        vapi.on('error', (err) => {
+            console.error('❌ Errore:', err);
+            status.textContent = '❌ ' + err.message;
+            isCallActive = false;
+            button.textContent = 'Inizia Chiamata';
+            button.classList.remove('active');
+        });
+    </script>
+</body>
+</html>
