@@ -49,11 +49,23 @@
         <div id="status"></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@2.1.3/dist/index.umd.js"></script>
     <script>
-        setTimeout(function() {
+        // Carica Vapi dinamicamente
+        (function() {
+            var script = document.createElement('script');
+            script.src = 'https://unpkg.com/@vapi-ai/web@2.1.3/dist/index.umd.js';
+            script.onload = function() {
+                initVapi();
+            };
+            script.onerror = function() {
+                document.getElementById('status').textContent = '❌ Impossibile caricare Vapi';
+            };
+            document.head.appendChild(script);
+        })();
+        
+        function initVapi() {
             if (typeof Vapi === 'undefined') {
-                document.getElementById('status').textContent = '❌ Errore caricamento';
+                document.getElementById('status').textContent = '❌ Vapi non disponibile';
                 return;
             }
             
@@ -62,8 +74,11 @@
             var status = document.getElementById('status');
             var isActive = false;
             
+            status.textContent = ''; // Rimuovi "Caricamento..."
+            
             button.onclick = function() {
                 if (!isActive) {
+                    status.textContent = '⏳ Connessione...';
                     vapi.start('719078b7-486f-44f1-9917-8aaed579819d').then(function() {
                         isActive = true;
                         button.textContent = 'Termina';
@@ -71,6 +86,7 @@
                         status.textContent = '🎙️ In chiamata...';
                     }).catch(function(e) {
                         status.textContent = '❌ ' + e.message;
+                        console.error(e);
                     });
                 } else {
                     vapi.stop();
@@ -80,7 +96,14 @@
                     status.textContent = '';
                 }
             };
-        }, 1000);
+            
+            vapi.on('call-end', function() {
+                isActive = false;
+                button.textContent = 'Inizia Chiamata';
+                button.className = '';
+                status.textContent = '';
+            });
+        }
     </script>
 </body>
 </html>
