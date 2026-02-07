@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chiama Paco</title>
-    <script src="https://cdn.jsdelivr.net/npm/jssip@3.10.1/dist/jssip.min.js"></script>
+    <script src="https://unpkg.com/jssip@3.10.1/dist/jssip.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -160,10 +160,20 @@
         window.addEventListener('DOMContentLoaded', initializeSIP);
 
         function initializeSIP() {
+            console.log('=== INIZIO INIZIALIZZAZIONE SIP ===');
+            
             try {
-                // Configurazione JsSIP per Vapi
+                console.log('1. Controllo JsSIP...');
+                if (typeof JsSIP === 'undefined') {
+                    throw new Error('JsSIP non caricato!');
+                }
+                console.log('✓ JsSIP disponibile:', JsSIP);
+
+                console.log('2. Creazione WebSocket...');
                 const socket = new JsSIP.WebSocketInterface('wss://sip.vapi.ai');
+                console.log('✓ WebSocket creato:', socket);
                 
+                console.log('3. Configurazione UA...');
                 const configuration = {
                     sockets: [socket],
                     uri: 'sip:guest@sip.vapi.ai',
@@ -171,29 +181,41 @@
                     session_timers: false,
                     use_preloaded_route: false
                 };
+                console.log('✓ Configurazione:', configuration);
 
+                console.log('4. Creazione User Agent...');
                 ua = new JsSIP.UA(configuration);
+                console.log('✓ UA creato:', ua);
                 
                 ua.on('connected', () => {
-                    console.log('WebSocket connected');
+                    console.log('✓✓✓ WebSocket CONNESSO!');
                     updateStatus('Pronto per chiamare ✅', 'connected');
                 });
 
                 ua.on('disconnected', () => {
-                    console.log('WebSocket disconnected');
+                    console.log('✗✗✗ WebSocket DISCONNESSO!');
                     updateStatus('Errore di connessione', 'error');
                 });
 
                 ua.on('newRTCSession', (data) => {
-                    console.log('New RTC Session', data);
+                    console.log('✓ New RTC Session:', data);
                 });
 
+                console.log('5. Avvio UA...');
                 ua.start();
+                console.log('✓ UA avviato!');
+                
                 updateStatus('Connessione in corso...', '');
                 
+                console.log('=== INIZIALIZZAZIONE COMPLETATA ===');
+                
             } catch (e) {
-                console.error('Init error:', e);
-                updateStatus('Errore inizializzazione: ' + e.message, 'error');
+                console.error('✗✗✗ ERRORE INIZIALIZZAZIONE:', e);
+                console.error('Stack:', e.stack);
+                updateStatus('Errore: ' + e.message, 'error');
+                
+                // Mostra errore dettagliato all'utente
+                alert('ERRORE INIZIALIZZAZIONE:\n\n' + e.message + '\n\nGuarda la Console (F12) per dettagli');
             }
         }
 
