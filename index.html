@@ -3,37 +3,287 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paco</title>
+    <title>Chiama Paco</title>
+    <script src="https://cdn.jsdelivr.net/npm/jssip@3.10.1/dist/jssip.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 20px;
         }
-        h1 { color: white; margin-bottom: 30px; font-size: 36px; }
-        #vapiFrame {
-            width: 100%;
-            max-width: 500px;
-            height: 600px;
-            border: none;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+
+        .container {
             background: white;
+            border-radius: 24px;
+            padding: 48px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+
+        .status {
+            background: #f5f5f5;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 32px;
+            font-size: 14px;
+            color: #666;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.calling {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 20px 48px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        button.hangup {
+            background: #dc3545;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        button.hangup:hover {
+            background: #c82333;
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.5);
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .footer {
+            margin-top: 32px;
+            font-size: 12px;
+            color: #999;
         }
     </style>
 </head>
 <body>
-    <h1>🎙️ Paco - Assistente</h1>
-    <iframe 
-        id="vapiFrame"
-        src="https://vapi.ai/?assistantId=719078b7-486f-44f1-9917-8aaed579819d&publicKey=2bb6b124-5478-410e-b770-447e904a6d61"
-        allow="microphone">
-    </iframe>
+    <div class="container">
+        <div class="icon">🎙️</div>
+        <h1>Chiama Paco</h1>
+        <p class="subtitle">Il tuo assistente virtuale</p>
+        
+        <div id="status" class="status">
+            Pronto per chiamare
+        </div>
+
+        <button id="callBtn" onclick="makeCall()">
+            📞 Chiama Ora
+        </button>
+
+        <div class="footer">
+            Powered by Vapi.ai
+        </div>
+    </div>
+
+    <script>
+        let ua = null;
+        let session = null;
+
+        // Aspetta che il DOM sia caricato
+        window.addEventListener('DOMContentLoaded', initializeSIP);
+
+        function initializeSIP() {
+            try {
+                // Configurazione JsSIP per Vapi
+                const socket = new JsSIP.WebSocketInterface('wss://sip.vapi.ai');
+                
+                const configuration = {
+                    sockets: [socket],
+                    uri: 'sip:guest@sip.vapi.ai',
+                    register: false,
+                    session_timers: false,
+                    use_preloaded_route: false
+                };
+
+                ua = new JsSIP.UA(configuration);
+                
+                ua.on('connected', () => {
+                    console.log('WebSocket connected');
+                    updateStatus('Pronto per chiamare ✅', 'connected');
+                });
+
+                ua.on('disconnected', () => {
+                    console.log('WebSocket disconnected');
+                    updateStatus('Errore di connessione', 'error');
+                });
+
+                ua.on('newRTCSession', (data) => {
+                    console.log('New RTC Session', data);
+                });
+
+                ua.start();
+                updateStatus('Connessione in corso...', '');
+                
+            } catch (e) {
+                console.error('Init error:', e);
+                updateStatus('Errore inizializzazione: ' + e.message, 'error');
+            }
+        }
+
+        function makeCall() {
+            if (!ua) {
+                updateStatus('User Agent non inizializzato', 'error');
+                return;
+            }
+
+            if (session) {
+                // Se c'è già una chiamata, termina
+                session.terminate();
+                return;
+            }
+
+            try {
+                updateStatus('Chiamata in corso...', 'calling');
+                document.getElementById('callBtn').textContent = '📞 Termina Chiamata';
+                document.getElementById('callBtn').classList.add('hangup');
+
+                const eventHandlers = {
+                    'peerconnection': (e) => {
+                        console.log('Peer connection', e);
+                        
+                        e.peerconnection.addEventListener('addstream', (event) => {
+                            console.log('Remote stream added');
+                            const remoteAudio = document.createElement('audio');
+                            remoteAudio.srcObject = event.stream;
+                            remoteAudio.play();
+                        });
+                    },
+                    'progress': () => {
+                        console.log('Call in progress');
+                        updateStatus('Chiamata in corso...', 'calling');
+                    },
+                    'accepted': () => {
+                        console.log('Call accepted');
+                        updateStatus('Chiamata connessa ✅', 'connected');
+                        document.querySelector('.icon').classList.add('pulse');
+                    },
+                    'confirmed': () => {
+                        console.log('Call confirmed');
+                        updateStatus('Chiamata attiva 🎙️', 'connected');
+                    },
+                    'ended': () => {
+                        console.log('Call ended');
+                        updateStatus('Chiamata terminata', '');
+                        resetCall();
+                    },
+                    'failed': (e) => {
+                        console.error('Call failed:', e);
+                        updateStatus('Chiamata fallita: ' + e.cause, 'error');
+                        resetCall();
+                    }
+                };
+
+                const options = {
+                    eventHandlers: eventHandlers,
+                    mediaConstraints: { 
+                        audio: true, 
+                        video: false 
+                    },
+                    rtcOfferConstraints: {
+                        offerToReceiveAudio: true,
+                        offerToReceiveVideo: false
+                    }
+                };
+
+                console.log('Making call to: sip:pacoassist@sip.vapi.ai');
+                session = ua.call('sip:pacoassist@sip.vapi.ai', options);
+
+            } catch (e) {
+                console.error('Call error:', e);
+                updateStatus('Errore: ' + e.message, 'error');
+                resetCall();
+            }
+        }
+
+        function resetCall() {
+            session = null;
+            document.getElementById('callBtn').textContent = '📞 Chiama Ora';
+            document.getElementById('callBtn').classList.remove('hangup');
+            document.querySelector('.icon').classList.remove('pulse');
+        }
+
+        function updateStatus(message, type = '') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + type;
+        }
+    </script>
 </body>
 </html>
